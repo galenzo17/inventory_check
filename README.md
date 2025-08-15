@@ -1,148 +1,50 @@
-# Medical Inventory Checker
+---
+title: Medical Inventory Checker
+emoji: 🏥
+colorFrom: blue
+colorTo: green
+sdk: gradio
+sdk_version: 4.44.0
+app_file: app.py
+pinned: false
+license: mit
+---
 
-An AI-powered application for checking medical case inventory using computer vision and multimodal models. Designed for medical equipment cases containing screws, tools, and instruments (similar to Medtronic products).
+# Medical Inventory Checker 🏥
+
+An AI-powered application for checking medical case inventory using computer vision and multimodal models. Designed for medical equipment cases containing screws, tools, and instruments.
 
 ## Features
 
 - **Visual Inventory Comparison**: Compare before/after images of medical cases
-- **AI-Powered Detection**: Uses Hugging Face models with free GPU resources
+- **AI-Powered Detection**: Uses state-of-the-art vision models
 - **Difference Highlighting**: Visually marks differences between inventory states
-- **Database Integration**: Tracks inventory stock with detailed product information
 - **Multiple Model Support**: Test different vision models for optimal accuracy
 
-## Tech Stack
+## How to Use
 
-- **Python 3.9+**
-- **Hugging Face Transformers**: For multimodal AI models
-- **Gradio**: Web interface for easy interaction
-- **OpenCV**: Image processing and visualization
-- **SQLite**: Lightweight database for inventory tracking
-- **Pillow**: Image manipulation
-
-## Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/inventory_check.git
-cd inventory_check
-```
-
-2. Create a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-4. Set up Hugging Face token (optional, for private models):
-```bash
-export HF_TOKEN=your_token_here
-```
-
-## Usage
-
-### Quick Start
-
-```bash
-python src/app.py
-```
-
-This will launch a Gradio interface where you can:
-1. Upload a "before" image of the medical case
+1. Upload a "before" image of your medical case
 2. Upload an "after" image of the medical case
-3. Select the AI model to use
-4. View the analysis results with highlighted differences
+3. Select the AI model to use (Qwen2.5-VL recommended)
+4. Click "Check Inventory" to analyze differences
+5. View the results with highlighted changes
 
-### API Usage
+## Supported Models
 
-```python
-from src.models.inventory_checker import InventoryChecker
+- **Qwen2.5-VL-3B**: Fast and accurate for object detection
+- **Kosmos-2**: Microsoft's grounding model for precise localization
+- **Florence-2**: Lightweight baseline model
 
-checker = InventoryChecker(model_name="microsoft/Florence-2-base")
-results = checker.compare_inventory(before_image_path, after_image_path)
-```
+## Technical Details
 
-## Project Structure
+This application uses Hugging Face Transformers to run vision-language models that can detect and compare objects in medical inventory cases. The system highlights differences between before and after states to help medical staff quickly identify missing or changed items.
 
-```
-inventory_check/
-├── src/
-│   ├── app.py                 # Main Gradio application
-│   ├── models/
-│   │   ├── inventory_checker.py  # Core inventory checking logic
-│   │   └── model_loader.py      # Hugging Face model management
-│   ├── utils/
-│   │   ├── image_processor.py   # Image preprocessing utilities
-│   │   └── visualization.py     # Difference visualization tools
-│   └── data/
-│       ├── inventory_db.py      # Database operations
-│       └── sample_inventory.json # Sample inventory data
-├── tests/                      # Unit tests
-├── requirements.txt            # Python dependencies
-└── README.md                  # This file
-```
+## Limitations
 
-## Models Supported
+- Best results with clear, well-lit images
+- Works optimally with organized medical cases
+- May require fine-tuning for specific medical equipment types
 
-The application supports state-of-the-art vision-language models from Hugging Face:
+## About
 
-- **Qwen2.5-VL (3B/7B)**: Latest state-of-the-art multimodal model with excellent object localization
-- **Llama 3.2 Vision (11B)**: Meta's powerful vision-language model with strong reasoning
-- **Kosmos-2**: Microsoft's grounding-capable model for precise object detection
-- **Microsoft Florence-2**: Lightweight model for basic object detection (legacy support)
-
-## Database Schema
-
-The inventory database tracks:
-- Product ID
-- Product name
-- Category (screws, tools, instruments)
-- Expected quantity
-- Current quantity
-- Location in case
-- Part number
-- Description
-
-## Development
-
-### Running Tests
-```bash
-pytest tests/
-```
-
-### Adding New Models
-1. Add model configuration to `src/models/model_loader.py`
-2. Implement model-specific processing in `inventory_checker.py`
-3. Update the UI in `app.py` to include the new model option
-
-## Roadmap
-
-- [ ] MVP: Basic image comparison with single model
-- [ ] Multi-model comparison interface
-- [ ] Export reports (PDF, Excel)
-- [ ] Real-time inventory tracking
-- [ ] Mobile app integration
-- [ ] Barcode/QR code support
-- [ ] Historical tracking and analytics
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Acknowledgments
-
-- Hugging Face for providing free GPU resources
-- Medical professionals who provided domain expertise
-- Open source community for the amazing tools
+Created for medical professionals to streamline inventory management and reduce errors in medical equipment tracking.
