@@ -12,10 +12,10 @@ class MedicalInventoryApp:
     def __init__(self):
         self.db = InventoryDatabase()
         self.available_models = [
-            "microsoft/Florence-2-base",
-            "microsoft/Florence-2-large",
+            "microsoft/kosmos-2-patch14-224",
             "Salesforce/blip2-opt-2.7b",
-            "google/owlvit-base-patch32"
+            "Qwen/Qwen2.5-VL-3B-Instruct",
+            "meta-llama/Llama-3.2-11B-Vision-Instruct"
         ]
         self.checker = None
         
@@ -69,7 +69,7 @@ class MedicalInventoryApp:
         report += "\n## Expected Inventory:\n"
         inventory = self.db.get_all_items()
         for item in inventory[:5]:  # Show first 5 items
-            report += f"- {item['name']}: {item['quantity']} units\n"
+            report += f"- {item['name']}: {item['current_quantity']} units\n"
         
         return report
     

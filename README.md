@@ -88,12 +88,12 @@ inventory_check/
 
 ## Models Supported
 
-The application supports various vision-language models from Hugging Face:
+The application supports state-of-the-art vision-language models from Hugging Face:
 
-- **Microsoft Florence-2**: Lightweight and efficient for object detection
-- **BLIP-2**: Strong visual question answering capabilities
-- **OWL-ViT**: Open-vocabulary object detection
-- **DETR**: End-to-end object detection
+- **Qwen2.5-VL (3B/7B)**: Latest state-of-the-art multimodal model with excellent object localization
+- **Llama 3.2 Vision (11B)**: Meta's powerful vision-language model with strong reasoning
+- **Kosmos-2**: Microsoft's grounding-capable model for precise object detection
+- **Microsoft Florence-2**: Lightweight model for basic object detection (legacy support)
 
 ## Database Schema
 

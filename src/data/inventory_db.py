@@ -16,7 +16,7 @@ class InventoryDatabase:
     def _initialize_database(self):
         """Create database tables if they don't exist"""
         
-        self.conn = sqlite3.connect(self.db_path)
+        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         cursor = self.conn.cursor()
         
@@ -238,9 +238,13 @@ class InventoryDatabase:
     def get_all_items(self) -> List[Dict]:
         """Get all inventory items"""
         
-        cursor = self.conn.cursor()
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
         cursor.execute("SELECT * FROM products ORDER BY category, name")
-        return [dict(row) for row in cursor.fetchall()]
+        result = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return result
     
     def update_quantity(self, part_number: str, new_quantity: int):
         """Update the current quantity of a product"""
@@ -294,7 +298,9 @@ class InventoryDatabase:
     def get_inventory_summary(self) -> Dict:
         """Get summary statistics of inventory"""
         
-        cursor = self.conn.cursor()
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
         
         # Total items
         cursor.execute("SELECT COUNT(*) FROM products")
@@ -324,12 +330,14 @@ class InventoryDatabase:
         ''')
         total_value = cursor.fetchone()[0] or 0
         
-        return {
+        result = {
             'total_items': total_items,
             'categories': categories,
             'low_stock_count': low_stock_count,
             'total_value': total_value
         }
+        conn.close()
+        return result
     
     def close(self):
         """Close database connection"""
