@@ -16,6 +16,38 @@ from inventory_checker import InventoryChecker
 from visualization import create_difference_visualization
 from inventory_db import InventoryDatabase
 
+# Internationalization support
+i18n = gr.I18n(
+    en={
+        "title": "🏥 Medical Inventory Checker",
+        "subtitle": "Upload before/after images of medical cases to detect missing or changed items",
+        "before_image": "Before Image",
+        "after_image": "After Image",
+        "select_model": "Select AI Model",
+        "threshold": "Detection Threshold",
+        "check_inventory": "🔍 Check Inventory",
+        "analysis_results": "Analysis Results",
+        "inventory_report": "Inventory Report",
+        "example_cases": "Example Cases",
+        "upload_both": "Please upload both before and after images",
+        "error_processing": "Error processing images",
+    },
+    es={
+        "title": "🏥 Verificador de Inventario Médico",
+        "subtitle": "Sube imágenes de antes/después de cajas médicas para detectar elementos faltantes o cambiados",
+        "before_image": "Imagen Anterior",
+        "after_image": "Imagen Posterior",
+        "select_model": "Seleccionar Modelo de IA",
+        "threshold": "Umbral de Detección",
+        "check_inventory": "🔍 Verificar Inventario",
+        "analysis_results": "Resultados del Análisis",
+        "inventory_report": "Reporte de Inventario",
+        "example_cases": "Casos de Ejemplo",
+        "upload_both": "Por favor sube ambas imágenes: antes y después",
+        "error_processing": "Error al procesar las imágenes",
+    }
+)
+
 class MedicalInventoryApp:
     def __init__(self):
         self.db = InventoryDatabase()
@@ -32,7 +64,7 @@ class MedicalInventoryApp:
         """Process before/after images and detect inventory differences"""
         
         if before_image is None or after_image is None:
-            return None, "Please upload both before and after images"
+            return None, i18n("upload_both")
         
         try:
             # Initialize or update the checker with selected model
@@ -55,7 +87,7 @@ class MedicalInventoryApp:
             return visualization, report
             
         except Exception as e:
-            return None, f"Error processing images: {str(e)}"
+            return None, f"{i18n('error_processing')}: {str(e)}"
     
     def _generate_report(self, results):
         """Generate a human-readable report of inventory differences"""
@@ -95,21 +127,21 @@ class MedicalInventoryApp:
     def create_interface(self):
         """Create Gradio interface"""
         
-        with gr.Blocks(title="Medical Inventory Checker") as interface:
-            gr.Markdown("# 🏥 Medical Inventory Checker")
-            gr.Markdown("Upload before/after images of medical cases to detect missing or changed items")
+        with gr.Blocks(title=i18n("title")) as interface:
+            gr.Markdown(f"# {i18n('title')}")
+            gr.Markdown(i18n("subtitle"))
             
             with gr.Row():
                 with gr.Column():
                     before_input = gr.Image(
-                        label="Before Image",
+                        label=i18n("before_image"),
                         type="pil",
                         height=400
                     )
                     
                 with gr.Column():
                     after_input = gr.Image(
-                        label="After Image", 
+                        label=i18n("after_image"), 
                         type="pil",
                         height=400
                     )
@@ -118,7 +150,7 @@ class MedicalInventoryApp:
                 model_selector = gr.Dropdown(
                     choices=self.available_models,
                     value=self.available_models[0],
-                    label="Select AI Model"
+                    label=i18n("select_model")
                 )
                 
                 threshold_slider = gr.Slider(
@@ -126,27 +158,27 @@ class MedicalInventoryApp:
                     maximum=0.9,
                     value=0.5,
                     step=0.1,
-                    label="Detection Threshold"
+                    label=i18n("threshold")
                 )
             
-            process_btn = gr.Button("🔍 Check Inventory", variant="primary")
+            process_btn = gr.Button(i18n("check_inventory"), variant="primary")
             
             with gr.Row():
                 with gr.Column():
                     output_image = gr.Image(
-                        label="Analysis Results",
+                        label=i18n("analysis_results"),
                         type="pil"
                     )
                 
                 with gr.Column():
                     output_report = gr.Markdown(
-                        label="Inventory Report"
+                        label=i18n("inventory_report")
                     )
             
             gr.Examples(
                 examples=[],
                 inputs=[before_input, after_input],
-                label="Example Cases"
+                label=i18n("example_cases")
             )
             
             # Connect the processing function
@@ -173,4 +205,4 @@ def main():
 
 if __name__ == "__main__":
     interface = create_interface()
-    interface.launch()
+    interface.launch(i18n=i18n)
