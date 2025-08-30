@@ -54,6 +54,17 @@ class MedicalInventoryApp:
         
         report = "## Inventory Analysis Report\n\n"
         
+        # Add DINO analysis if available
+        if results.get('analysis', {}).get('enhanced_with_dino'):
+            dino_sim = results['analysis']['dino_similarity']
+            dino_change = results['analysis']['dino_change_detected']
+            change_mag = results['analysis']['dino_change_magnitude']
+            
+            report += f"🔬 **Enhanced Analysis (DINO)**\n"
+            report += f"- Overall Similarity: {dino_sim:.3f}\n"
+            report += f"- Change Detected: {'Yes' if dino_change else 'No'}\n"
+            report += f"- Change Magnitude: {change_mag:.3f}\n\n"
+        
         if not results['differences']:
             report += "✅ No significant differences detected\n"
         else:
