@@ -213,18 +213,25 @@ class MedicalInventoryApp:
         """Create Gradio interface"""
         
         with gr.Blocks(title=i18n("title")) as interface:
-            # Language selector at the top
+            # Header with language selector
             with gr.Row():
-                language_selector = gr.Radio(
-                    choices=["English", "Español"],
-                    value="English",
-                    label="Language / Idioma",
-                    scale=1
-                )
+                with gr.Column(scale=3):
+                    gr.HTML("""
+                    <div style="text-align: center; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; margin-bottom: 20px;">
+                        <h1 style="color: white; margin: 0; font-size: 2em;">🏥 Medical Inventory Checker</h1>
+                        <p style="color: white; margin: 5px 0 0 0; opacity: 0.9;">AI-powered inventory analysis with DINO enhancement</p>
+                    </div>
+                    """)
+                with gr.Column(scale=1):
+                    language_selector = gr.Radio(
+                        choices=["English", "Español"],
+                        value="English",
+                        label="🌐 Language / Idioma",
+                        scale=1
+                    )
             
-            # Dynamic title and subtitle
-            title_display = gr.Markdown(f"# {i18n('title')}")
-            subtitle_display = gr.Markdown(i18n("subtitle"))
+            # Instructions section
+            subtitle_display = gr.Markdown(f"## {i18n('subtitle')}")
             
             with gr.Row():
                 with gr.Column():
@@ -280,8 +287,7 @@ class MedicalInventoryApp:
             def update_language(lang):
                 i18n.set_language('es' if lang == "Español" else 'en')
                 return (
-                    f"# {i18n('title')}",
-                    i18n("subtitle"),
+                    f"## {i18n('subtitle')}",
                     gr.update(label=i18n("before_image")),
                     gr.update(label=i18n("after_image")),
                     gr.update(label=i18n("select_model")),
@@ -295,7 +301,7 @@ class MedicalInventoryApp:
                 fn=update_language,
                 inputs=[language_selector],
                 outputs=[
-                    title_display, subtitle_display,
+                    subtitle_display,
                     before_input, after_input,
                     model_selector, threshold_slider,
                     process_btn,

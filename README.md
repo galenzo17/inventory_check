@@ -12,28 +12,32 @@ license: mit
 
 # Medical Inventory Checker 🏥
 
-An AI-powered application for checking medical case inventory using computer vision and multimodal models. Designed for medical equipment cases containing screws, tools, and instruments.
+An advanced AI-powered application for checking medical case inventory using computer vision, multimodal models, and DINO self-supervised learning. Designed for medical equipment cases containing screws, tools, and instruments.
 
-## Features
+## ✨ Features
 
-- **Visual Inventory Comparison**: Compare before/after images of medical cases
-- **AI-Powered Detection**: Uses state-of-the-art vision models
-- **Difference Highlighting**: Visually marks differences between inventory states
-- **Multiple Model Support**: Test different vision models for optimal accuracy
+- **🌐 Bilingual Interface**: Full support for English and Spanish with dynamic language switching
+- **🔍 DINO Enhanced Detection**: Self-supervised vision transformers for superior change detection  
+- **🟢 Green Bounding Box Visualization**: Professional medical-grade visual annotations
+- **🤖 Multiple AI Models**: Qwen2.5-VL, Kosmos-2, Florence-2, and DINO integration
+- **📊 Detailed Analysis Reports**: Comprehensive bilingual reports with visual statistics
+- **⚡ Enhanced Annotations**: Lightning bolt indicators for DINO-enhanced detections
 
-## How to Use
+## 🚀 How to Use
 
-1. Upload a "before" image of your medical case
-2. Upload an "after" image of the medical case
-3. Select the AI model to use (Qwen2.5-VL recommended)
-4. Click "Check Inventory" to analyze differences
-5. View the results with highlighted changes
+1. **Select Language**: Choose English or Español from the language selector
+2. **Upload Images**: Add "before" and "after" images of your medical case
+3. **Choose Model**: Select AI model (Qwen2.5-VL recommended for best results)
+4. **Set Threshold**: Adjust detection sensitivity (0.5 default)
+5. **Analyze**: Click "Check Inventory" / "Verificar Inventario" 
+6. **Review Results**: View green-boxed annotations and detailed bilingual reports
 
-## Supported Models
+## 🧠 AI Models
 
-- **Qwen2.5-VL-3B**: Fast and accurate for object detection
-- **Kosmos-2**: Microsoft's grounding model for precise localization
-- **Florence-2**: Lightweight baseline model
+- **Qwen2.5-VL-3B**: Advanced vision-language model for precise object detection
+- **Kosmos-2**: Microsoft's grounding model for accurate spatial localization  
+- **Florence-2**: Lightweight baseline for fast processing
+- **DINO ViT**: Self-supervised vision transformer for change region detection
 
 ## Technical Details
 
