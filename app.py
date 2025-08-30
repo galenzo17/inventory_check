@@ -55,11 +55,16 @@ i18n = I18n({
         "found_differences": "⚠️ Found {} differences:\n\n",
         "item": "   - Item: ",
         "location": "   - Location: ",
+        "bbox_coords": "   - Bounding Box: ",
         "confidence": "   - Confidence: ",
         "unknown": "Unknown",
         "na": "N/A",
         "expected_inventory": "\n## Expected Inventory:\n",
         "units": " units",
+        "visual_summary": "\n## Visual Detection Summary\n",
+        "objects_detected": "- Objects Detected: ",
+        "dino_regions": "- DINO Change Regions: ",
+        "total_changes": "- Total Changes Found: ",
     },
     'es': {
         "title": "🏥 Verificador de Inventario Médico",
@@ -86,11 +91,16 @@ i18n = I18n({
         "found_differences": "⚠️ Se encontraron {} diferencias:\n\n",
         "item": "   - Elemento: ",
         "location": "   - Ubicación: ",
+        "bbox_coords": "   - Recuadro: ",
         "confidence": "   - Confianza: ",
         "unknown": "Desconocido",
         "na": "N/D",
         "expected_inventory": "\n## Inventario Esperado:\n",
         "units": " unidades",
+        "visual_summary": "\n## Resumen de Detección Visual\n",
+        "objects_detected": "- Objetos Detectados: ",
+        "dino_regions": "- Regiones de Cambio DINO: ",
+        "total_changes": "- Total de Cambios Encontrados: ",
     }
 })
 
@@ -136,9 +146,20 @@ class MedicalInventoryApp:
             return None, f"{i18n('error_processing')}: {str(e)}"
     
     def _generate_report(self, results):
-        """Generate a human-readable report of inventory differences"""
+        """Generate a human-readable report of inventory differences with visual data"""
         
         report = i18n("report_title")
+        
+        # Add visual detection summary
+        report += i18n("visual_summary")
+        total_before = len(results.get('before_objects', []))
+        total_after = len(results.get('after_objects', []))
+        dino_count = sum(1 for d in results.get('differences', []) if d.get('source') == 'dino')
+        
+        report += f"{i18n('objects_detected')}{total_before} → {total_after}\n"
+        if dino_count > 0:
+            report += f"{i18n('dino_regions')}{dino_count}\n"
+        report += f"{i18n('total_changes')}{len(results.get('differences', []))}\n\n"
         
         # Add DINO analysis if available
         if results.get('analysis', {}).get('enhanced_with_dino'):
@@ -157,10 +178,28 @@ class MedicalInventoryApp:
             report += i18n("found_differences").format(len(results['differences']))
             
             for i, diff in enumerate(results['differences'], 1):
-                report += f"**{i}. {diff['type']}**\n"
+                # Add icon based on source
+                icon = "🔍" if diff.get('source') == 'dino' else "📦"
+                enhanced = "⚡" if diff.get('dino_enhanced') else ""
+                
+                report += f"**{i}. {icon}{enhanced} {diff['type'].upper()}**\n"
                 report += f"{i18n('item')}{diff.get('item', i18n('unknown'))}\n"
-                report += f"{i18n('location')}{diff.get('location', i18n('na'))}\n"
-                report += f"{i18n('confidence')}{diff.get('confidence', 0):.2%}\n\n"
+                
+                # Add bounding box coordinates if available
+                if diff.get('location'):
+                    bbox = diff['location']
+                    if isinstance(bbox, list) and len(bbox) >= 4:
+                        report += f"{i18n('bbox_coords')}({int(bbox[0])}, {int(bbox[1])}) → ({int(bbox[2])}, {int(bbox[3])})\n"
+                    else:
+                        report += f"{i18n('location')}{diff.get('location', i18n('na'))}\n"
+                
+                report += f"{i18n('confidence')}{diff.get('confidence', 0):.2%}\n"
+                
+                # Add DINO confidence if enhanced
+                if diff.get('dino_confidence'):
+                    report += f"   - DINO Confidence: {diff['dino_confidence']:.2%}\n"
+                
+                report += "\n"
         
         # Add inventory summary from database
         report += i18n("expected_inventory")
