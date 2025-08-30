@@ -31,6 +31,23 @@ i18n = gr.I18n(
         "example_cases": "Example Cases",
         "upload_both": "Please upload both before and after images",
         "error_processing": "Error processing images",
+        # Report translations
+        "report_title": "## Inventory Analysis Report\n\n",
+        "dino_enhanced": "🔬 **Enhanced Analysis (DINO)**\n",
+        "overall_similarity": "- Overall Similarity: ",
+        "change_detected": "- Change Detected: ",
+        "change_magnitude": "- Change Magnitude: ",
+        "yes": "Yes",
+        "no": "No",
+        "no_differences": "✅ No significant differences detected\n",
+        "found_differences": "⚠️ Found {} differences:\n\n",
+        "item": "   - Item: ",
+        "location": "   - Location: ",
+        "confidence": "   - Confidence: ",
+        "unknown": "Unknown",
+        "na": "N/A",
+        "expected_inventory": "\n## Expected Inventory:\n",
+        "units": " units",
     },
     es={
         "title": "🏥 Verificador de Inventario Médico",
@@ -45,6 +62,23 @@ i18n = gr.I18n(
         "example_cases": "Casos de Ejemplo",
         "upload_both": "Por favor sube ambas imágenes: antes y después",
         "error_processing": "Error al procesar las imágenes",
+        # Report translations
+        "report_title": "## Reporte de Análisis de Inventario\n\n",
+        "dino_enhanced": "🔬 **Análisis Mejorado (DINO)**\n",
+        "overall_similarity": "- Similitud General: ",
+        "change_detected": "- Cambio Detectado: ",
+        "change_magnitude": "- Magnitud del Cambio: ",
+        "yes": "Sí",
+        "no": "No",
+        "no_differences": "✅ No se detectaron diferencias significativas\n",
+        "found_differences": "⚠️ Se encontraron {} diferencias:\n\n",
+        "item": "   - Elemento: ",
+        "location": "   - Ubicación: ",
+        "confidence": "   - Confianza: ",
+        "unknown": "Desconocido",
+        "na": "N/D",
+        "expected_inventory": "\n## Inventario Esperado:\n",
+        "units": " unidades",
     }
 )
 
@@ -92,7 +126,7 @@ class MedicalInventoryApp:
     def _generate_report(self, results):
         """Generate a human-readable report of inventory differences"""
         
-        report = "## Inventory Analysis Report\n\n"
+        report = i18n("report_title")
         
         # Add DINO analysis if available
         if results.get('analysis', {}).get('enhanced_with_dino'):
@@ -100,27 +134,27 @@ class MedicalInventoryApp:
             dino_change = results['analysis']['dino_change_detected']
             change_mag = results['analysis']['dino_change_magnitude']
             
-            report += f"🔬 **Enhanced Analysis (DINO)**\n"
-            report += f"- Overall Similarity: {dino_sim:.3f}\n"
-            report += f"- Change Detected: {'Yes' if dino_change else 'No'}\n"
-            report += f"- Change Magnitude: {change_mag:.3f}\n\n"
+            report += i18n("dino_enhanced")
+            report += f"{i18n('overall_similarity')}{dino_sim:.3f}\n"
+            report += f"{i18n('change_detected')}{i18n('yes') if dino_change else i18n('no')}\n"
+            report += f"{i18n('change_magnitude')}{change_mag:.3f}\n\n"
         
         if not results['differences']:
-            report += "✅ No significant differences detected\n"
+            report += i18n("no_differences")
         else:
-            report += f"⚠️ Found {len(results['differences'])} differences:\n\n"
+            report += i18n("found_differences").format(len(results['differences']))
             
             for i, diff in enumerate(results['differences'], 1):
                 report += f"**{i}. {diff['type']}**\n"
-                report += f"   - Item: {diff.get('item', 'Unknown')}\n"
-                report += f"   - Location: {diff.get('location', 'N/A')}\n"
-                report += f"   - Confidence: {diff.get('confidence', 0):.2%}\n\n"
+                report += f"{i18n('item')}{diff.get('item', i18n('unknown'))}\n"
+                report += f"{i18n('location')}{diff.get('location', i18n('na'))}\n"
+                report += f"{i18n('confidence')}{diff.get('confidence', 0):.2%}\n\n"
         
         # Add inventory summary from database
-        report += "\n## Expected Inventory:\n"
+        report += i18n("expected_inventory")
         inventory = self.db.get_all_items()
         for item in inventory[:5]:  # Show first 5 items
-            report += f"- {item['name']}: {item['current_quantity']} units\n"
+            report += f"- {item['name']}: {item['current_quantity']}{i18n('units')}\n"
         
         return report
     
