@@ -4,7 +4,6 @@ from PIL import Image
 import numpy as np
 from typing import Dict, List, Tuple, Optional, Union
 import torchvision.transforms as transforms
-from sklearn.metrics.pairwise import cosine_similarity
 
 class DinoFeatureExtractor:
     """DINO-based feature extractor for medical inventory comparison"""
@@ -93,14 +92,14 @@ class DinoFeatureExtractor:
         Returns:
             Cosine similarity score (0-1)
         """
-        # Convert to numpy for sklearn
-        feat1_np = features1.cpu().numpy()
-        feat2_np = features2.cpu().numpy()
+        # Normalize features
+        feat1_norm = F.normalize(features1, p=2, dim=1)
+        feat2_norm = F.normalize(features2, p=2, dim=1)
         
-        # Calculate cosine similarity
-        similarity = cosine_similarity(feat1_np, feat2_np)[0, 0]
+        # Calculate cosine similarity using PyTorch
+        similarity = torch.cosine_similarity(feat1_norm, feat2_norm, dim=1)
         
-        return float(similarity)
+        return float(similarity.item())
     
     def detect_changes(self, before_image: Union[Image.Image, np.ndarray], 
                       after_image: Union[Image.Image, np.ndarray],
