@@ -16,9 +16,21 @@ from inventory_checker import InventoryChecker
 from visualization import create_difference_visualization
 from inventory_db import InventoryDatabase
 
-# Internationalization support
-i18n = gr.I18n(
-    en={
+# Internationalization support - Custom implementation
+class I18n:
+    def __init__(self, translations):
+        self.translations = translations
+        self.current_lang = 'en'  # Default to English
+    
+    def set_language(self, lang):
+        self.current_lang = lang if lang in self.translations else 'en'
+    
+    def __call__(self, key):
+        return self.translations.get(self.current_lang, {}).get(key, 
+                                     self.translations['en'].get(key, key))
+
+i18n = I18n({
+    'en': {
         "title": "🏥 Medical Inventory Checker",
         "subtitle": "Upload before/after images of medical cases to detect missing or changed items",
         "before_image": "Before Image",
@@ -49,7 +61,7 @@ i18n = gr.I18n(
         "expected_inventory": "\n## Expected Inventory:\n",
         "units": " units",
     },
-    es={
+    'es': {
         "title": "🏥 Verificador de Inventario Médico",
         "subtitle": "Sube imágenes de antes/después de cajas médicas para detectar elementos faltantes o cambiados",
         "before_image": "Imagen Anterior",
@@ -80,7 +92,7 @@ i18n = gr.I18n(
         "expected_inventory": "\n## Inventario Esperado:\n",
         "units": " unidades",
     }
-)
+})
 
 class MedicalInventoryApp:
     def __init__(self):
@@ -162,8 +174,18 @@ class MedicalInventoryApp:
         """Create Gradio interface"""
         
         with gr.Blocks(title=i18n("title")) as interface:
-            gr.Markdown(f"# {i18n('title')}")
-            gr.Markdown(i18n("subtitle"))
+            # Language selector at the top
+            with gr.Row():
+                language_selector = gr.Radio(
+                    choices=["English", "Español"],
+                    value="English",
+                    label="Language / Idioma",
+                    scale=1
+                )
+            
+            # Dynamic title and subtitle
+            title_display = gr.Markdown(f"# {i18n('title')}")
+            subtitle_display = gr.Markdown(i18n("subtitle"))
             
             with gr.Row():
                 with gr.Column():
@@ -215,6 +237,33 @@ class MedicalInventoryApp:
                 label=i18n("example_cases")
             )
             
+            # Language change handler
+            def update_language(lang):
+                i18n.set_language('es' if lang == "Español" else 'en')
+                return (
+                    f"# {i18n('title')}",
+                    i18n("subtitle"),
+                    gr.update(label=i18n("before_image")),
+                    gr.update(label=i18n("after_image")),
+                    gr.update(label=i18n("select_model")),
+                    gr.update(label=i18n("threshold")),
+                    gr.update(value=i18n("check_inventory")),
+                    gr.update(label=i18n("analysis_results")),
+                    gr.update(label=i18n("inventory_report"))
+                )
+            
+            language_selector.change(
+                fn=update_language,
+                inputs=[language_selector],
+                outputs=[
+                    title_display, subtitle_display,
+                    before_input, after_input,
+                    model_selector, threshold_slider,
+                    process_btn,
+                    output_image, output_report
+                ]
+            )
+            
             # Connect the processing function
             process_btn.click(
                 fn=self.process_images,
@@ -239,4 +288,4 @@ def main():
 
 if __name__ == "__main__":
     interface = create_interface()
-    interface.launch(i18n=i18n)
+    interface.launch()
