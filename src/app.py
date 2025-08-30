@@ -12,17 +12,31 @@ current_dir = Path(__file__).parent
 if str(current_dir) not in sys.path:
     sys.path.insert(0, str(current_dir))
 
-# Try relative imports first (for proper package structure)
-# Fall back to absolute imports (for HF Spaces compatibility)
+# Import local modules - simplified approach for HF Spaces
 try:
-    from .models.inventory_checker import InventoryChecker
-    from .utils.visualization import create_difference_visualization
-    from .data.inventory_db import InventoryDatabase
-except ImportError:
-    # Fallback for HF Spaces
+    # Try direct imports from current directory first
     from models.inventory_checker import InventoryChecker
     from utils.visualization import create_difference_visualization
     from data.inventory_db import InventoryDatabase
+except ImportError:
+    try:
+        # Try relative imports
+        from .models.inventory_checker import InventoryChecker
+        from .utils.visualization import create_difference_visualization
+        from .data.inventory_db import InventoryDatabase
+    except ImportError:
+        # Last resort: add each subdirectory to path
+        models_dir = current_dir / "models"
+        utils_dir = current_dir / "utils"  
+        data_dir = current_dir / "data"
+        
+        for dir_path in [models_dir, utils_dir, data_dir]:
+            if str(dir_path) not in sys.path:
+                sys.path.insert(0, str(dir_path))
+                
+        from inventory_checker import InventoryChecker
+        from visualization import create_difference_visualization
+        from inventory_db import InventoryDatabase
 
 class MedicalInventoryApp:
     def __init__(self):
