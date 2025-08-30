@@ -26,7 +26,7 @@ def create_difference_visualization(before_image: Image.Image,
 
 def annotate_image(image: np.ndarray, differences: List[Dict], 
                    image_type: str) -> np.ndarray:
-    """Annotate an image with difference markers"""
+    """Annotate an image with difference markers including DINO enhancements"""
     
     annotated = image.copy()
     
@@ -37,16 +37,28 @@ def annotate_image(image: np.ndarray, differences: List[Dict],
         if image_type == 'after' and diff['type'] == 'missing':
             continue
         
-        # Get color based on difference type
-        color = get_difference_color(diff['type'])
+        # Get color based on difference type and source
+        if diff.get('source') == 'dino':
+            color = get_difference_color('detected')  # Spring green for DINO
+        elif diff.get('dino_enhanced'):
+            color = (0, 255, 127)  # Aqua green for DINO-enhanced detections
+        else:
+            color = get_difference_color(diff['type'])
+        
+        # Create enhanced label for DINO detections
+        label = diff['item']
+        if diff.get('dino_enhanced'):
+            label = f"⚡ {label}"  # Lightning bolt for DINO-enhanced
+        elif diff.get('source') == 'dino':
+            label = f"🔍 {label}"  # Magnifying glass for DINO-only
         
         # Draw bounding box if available
         if diff.get('location') and diff['location'] is not None:
             bbox = diff['location']
-            annotated = draw_bbox(annotated, bbox, color, diff['item'])
+            annotated = draw_bbox(annotated, bbox, color, label)
         else:
             # Add text annotation if no bbox
-            annotated = add_text_annotation(annotated, diff['item'], color, image_type)
+            annotated = add_text_annotation(annotated, label, color, image_type)
     
     return annotated
 

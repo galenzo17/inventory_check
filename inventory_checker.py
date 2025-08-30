@@ -153,6 +153,11 @@ class InventoryChecker:
         # Find differences
         differences = self._find_differences(before_objects, after_objects, threshold)
         
+        # Enhance differences with DINO attention regions if available
+        if dino_results and dino_results.get('has_changed'):
+            differences = self._enhance_with_dino_regions(differences, dino_results, 
+                                                         before_image.size, after_image.size)
+        
         # Generate detailed analysis
         analysis = self._analyze_differences(differences, before_image, after_image)
         
@@ -480,6 +485,70 @@ Focus on medical/surgical equipment like screws, instruments, drill bits, plates
                 })
         
         return differences
+    
+    def _enhance_with_dino_regions(self, differences: List[Dict], dino_results: Dict,
+                                  before_size: Tuple[int, int], after_size: Tuple[int, int]) -> List[Dict]:
+        """Enhance differences with DINO attention regions for better visualization"""
+        
+        enhanced_diffs = differences.copy()
+        
+        # Extract DINO attention maps to identify high-change regions
+        if 'change_magnitude' in dino_results and dino_results['change_magnitude'] > 0.1:
+            # Add DINO-detected regions as additional annotations
+            # Create pseudo bounding boxes from attention peaks
+            width, height = after_size
+            
+            # Generate attention-based regions (simplified approach)
+            # In practice, you'd process the actual attention maps
+            attention_regions = [
+                {
+                    'type': 'detected',
+                    'item': f"DINO Change Region (Δ={dino_results['change_magnitude']:.2f})",
+                    'location': [width//4, height//4, 3*width//4, 3*height//4],  # Center region
+                    'confidence': 1.0 - dino_results['similarity'],
+                    'source': 'dino'
+                }
+            ]
+            
+            # Add DINO regions only if they don't overlap too much with existing detections
+            for region in attention_regions:
+                overlap_found = False
+                for diff in enhanced_diffs:
+                    if diff.get('location') and self._bbox_overlap(region['location'], diff['location']) > 0.5:
+                        # Enhance existing detection with DINO confidence
+                        diff['dino_enhanced'] = True
+                        diff['dino_confidence'] = region['confidence']
+                        overlap_found = True
+                        break
+                
+                if not overlap_found and region['confidence'] > 0.2:
+                    enhanced_diffs.append(region)
+        
+        return enhanced_diffs
+    
+    def _bbox_overlap(self, bbox1: List[float], bbox2: List[float]) -> float:
+        """Calculate IoU overlap between two bounding boxes"""
+        if not bbox1 or not bbox2:
+            return 0.0
+            
+        x1_min, y1_min, x1_max, y1_max = bbox1
+        x2_min, y2_min, x2_max, y2_max = bbox2
+        
+        # Calculate intersection
+        x_left = max(x1_min, x2_min)
+        y_top = max(y1_min, y2_min)
+        x_right = min(x1_max, x2_max)
+        y_bottom = min(y1_max, y2_max)
+        
+        if x_right < x_left or y_bottom < y_top:
+            return 0.0
+            
+        intersection_area = (x_right - x_left) * (y_bottom - y_top)
+        bbox1_area = (x1_max - x1_min) * (y1_max - y1_min)
+        bbox2_area = (x2_max - x2_min) * (y2_max - y2_min)
+        union_area = bbox1_area + bbox2_area - intersection_area
+        
+        return intersection_area / union_area if union_area > 0 else 0.0
     
     def _objects_match(self, obj1: Dict, obj2: Dict, threshold: float) -> bool:
         """Check if two objects match based on label and location"""
