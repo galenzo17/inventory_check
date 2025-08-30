@@ -52,27 +52,48 @@ def annotate_image(image: np.ndarray, differences: List[Dict],
 
 def draw_bbox(image: np.ndarray, bbox: List[float], 
               color: Tuple[int, int, int], label: str) -> np.ndarray:
-    """Draw a bounding box with label on the image"""
+    """Draw an enhanced green bounding box with label tag on the image"""
     
     img_copy = image.copy()
     
     # Convert bbox to integers
     x1, y1, x2, y2 = [int(coord) for coord in bbox]
     
-    # Draw rectangle
-    cv2.rectangle(img_copy, (x1, y1), (x2, y2), color, 3)
+    # Draw main green rectangle with thicker border
+    green_color = (0, 255, 0)  # Pure green for main box
+    cv2.rectangle(img_copy, (x1, y1), (x2, y2), green_color, 4)
     
-    # Add label background
-    label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
-    label_height = label_size[1] + 10
+    # Add corner accents for better visibility
+    corner_length = min(30, (x2-x1)//4, (y2-y1)//4)
+    cv2.line(img_copy, (x1, y1), (x1 + corner_length, y1), green_color, 6)
+    cv2.line(img_copy, (x1, y1), (x1, y1 + corner_length), green_color, 6)
+    cv2.line(img_copy, (x2, y1), (x2 - corner_length, y1), green_color, 6)
+    cv2.line(img_copy, (x2, y1), (x2, y1 + corner_length), green_color, 6)
+    cv2.line(img_copy, (x1, y2), (x1 + corner_length, y2), green_color, 6)
+    cv2.line(img_copy, (x1, y2), (x1, y2 - corner_length), green_color, 6)
+    cv2.line(img_copy, (x2, y2), (x2 - corner_length, y2), green_color, 6)
+    cv2.line(img_copy, (x2, y2), (x2, y2 - corner_length), green_color, 6)
     
-    # Draw filled rectangle for label background
-    cv2.rectangle(img_copy, (x1, y1 - label_height), 
-                 (x1 + label_size[0] + 10, y1), color, -1)
+    # Enhanced label tag with better visibility
+    font = cv2.FONT_HERSHEY_DUPLEX
+    font_scale = 0.7
+    thickness = 2
+    label_size, _ = cv2.getTextSize(label, font, font_scale, thickness)
+    label_height = label_size[1] + 12
+    label_width = label_size[0] + 16
     
-    # Add label text
-    cv2.putText(img_copy, label, (x1 + 5, y1 - 5),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+    # Draw label tag background with rounded corners effect
+    tag_color = (0, 200, 0)  # Darker green for tag background
+    cv2.rectangle(img_copy, (x1 - 2, y1 - label_height - 2), 
+                 (x1 + label_width + 2, y1 + 2), tag_color, -1)
+    
+    # Add white border around tag for contrast
+    cv2.rectangle(img_copy, (x1 - 2, y1 - label_height - 2), 
+                 (x1 + label_width + 2, y1 + 2), (255, 255, 255), 2)
+    
+    # Add label text in white for maximum contrast
+    cv2.putText(img_copy, label, (x1 + 8, y1 - 8),
+                font, font_scale, (255, 255, 255), thickness)
     
     return img_copy
 
@@ -172,15 +193,18 @@ def add_legend_and_title(image: np.ndarray, differences: List[Dict]) -> np.ndarr
     return final_image
 
 def get_difference_color(diff_type: str) -> Tuple[int, int, int]:
-    """Get color for different types of differences"""
+    """Get color for different types of differences - enhanced with green theme"""
     
     colors = {
-        'missing': (0, 0, 255),      # Red for missing items
-        'added': (0, 255, 0),        # Green for added items
-        'modified': (255, 165, 0)    # Orange for modified items
+        'missing': (69, 69, 255),      # Soft red (BGR format for OpenCV)
+        'added': (50, 205, 50),        # Lime green for added items
+        'modified': (0, 165, 255),     # Orange for modified items
+        'detected': (127, 255, 0),     # Spring green for detected objects
+        'changed': (0, 191, 255),      # Deep sky blue for changes
+        'default': (0, 255, 0)         # Pure green as default
     }
     
-    return colors.get(diff_type, (128, 128, 128))
+    return colors.get(diff_type, colors['default'])
 
 def highlight_regions(image: np.ndarray, regions: List[Dict], 
                      alpha: float = 0.3) -> np.ndarray:
