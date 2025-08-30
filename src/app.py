@@ -4,9 +4,18 @@ from PIL import Image
 import json
 import os
 import spaces
-from models.inventory_checker import InventoryChecker
-from utils.visualization import create_difference_visualization
-from data.inventory_db import InventoryDatabase
+
+# Try relative imports first (for proper package structure)
+# Fall back to absolute imports (for HF Spaces compatibility)
+try:
+    from .models.inventory_checker import InventoryChecker
+    from .utils.visualization import create_difference_visualization
+    from .data.inventory_db import InventoryDatabase
+except ImportError:
+    # Fallback for HF Spaces
+    from models.inventory_checker import InventoryChecker
+    from utils.visualization import create_difference_visualization
+    from data.inventory_db import InventoryDatabase
 
 class MedicalInventoryApp:
     def __init__(self):
@@ -150,9 +159,13 @@ class MedicalInventoryApp:
             
         return interface
 
-def main():
+def create_interface():
+    """Create Gradio interface - module level function for imports"""
     app = MedicalInventoryApp()
-    interface = app.create_interface()
+    return app.create_interface()
+
+def main():
+    interface = create_interface()
     interface.launch(
         server_name="0.0.0.0",
         server_port=7860,
