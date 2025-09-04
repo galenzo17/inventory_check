@@ -16,6 +16,9 @@ from inventory_checker import InventoryChecker
 from visualization import create_difference_visualization
 from inventory_db import InventoryDatabase
 
+# Import segmentation app
+from segmentation_app import create_segmentation_interface
+
 # Internationalization support - Custom implementation
 class I18n:
     def __init__(self, translations):
@@ -33,6 +36,8 @@ i18n = I18n({
     'en': {
         "title": "🏥 Medical Inventory Checker",
         "subtitle": "Upload before/after images of medical cases to detect missing or changed items",
+        "tab_inventory": "Inventory Comparison",
+        "tab_segmentation": "Item Segmentation",
         "before_image": "Before Image",
         "after_image": "After Image",
         "select_model": "Select AI Model",
@@ -69,6 +74,8 @@ i18n = I18n({
     'es': {
         "title": "🏥 Verificador de Inventario Médico",
         "subtitle": "Sube imágenes de antes/después de cajas médicas para detectar elementos faltantes o cambiados",
+        "tab_inventory": "Comparación de Inventario",
+        "tab_segmentation": "Segmentación de Elementos",
         "before_image": "Imagen Anterior",
         "after_image": "Imagen Posterior",
         "select_model": "Seleccionar Modelo de IA",
@@ -209,27 +216,9 @@ class MedicalInventoryApp:
         
         return report
     
-    def create_interface(self):
-        """Create Gradio interface"""
-        
-        with gr.Blocks(title=i18n("title")) as interface:
-            # Header with language selector
-            with gr.Row():
-                with gr.Column(scale=3):
-                    gr.HTML("""
-                    <div style="text-align: center; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; margin-bottom: 20px;">
-                        <h1 style="color: white; margin: 0; font-size: 2em;">🏥 Medical Inventory Checker</h1>
-                        <p style="color: white; margin: 5px 0 0 0; opacity: 0.9;">AI-powered inventory analysis with DINO enhancement</p>
-                    </div>
-                    """)
-                with gr.Column(scale=1):
-                    language_selector = gr.Radio(
-                        choices=["English", "Español"],
-                        value="English",
-                        label="🌐 Language / Idioma",
-                        scale=1
-                    )
-            
+    def create_inventory_interface(self):
+        """Create inventory comparison interface"""
+        with gr.Column():
             # Instructions section
             subtitle_display = gr.Markdown(f"## {i18n('subtitle')}")
             
@@ -283,6 +272,126 @@ class MedicalInventoryApp:
                 label=i18n("example_cases")
             )
             
+            
+            # Connect the processing function
+            process_btn.click(
+                fn=self.process_images,
+                inputs=[before_input, after_input, model_selector, threshold_slider],
+                outputs=[output_image, output_report]
+            )
+            
+            return (subtitle_display, before_input, after_input, model_selector, 
+                   threshold_slider, process_btn, output_image, output_report)
+    
+    def create_interface(self):
+        """Create main tabbed interface"""
+        
+        with gr.Blocks(title=i18n("title"), theme=gr.themes.Soft()) as interface:
+            # Header with language selector
+            with gr.Row():
+                with gr.Column(scale=3):
+                    gr.HTML("""
+                    <div style="text-align: center; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; margin-bottom: 20px;">
+                        <h1 style="color: white; margin: 0; font-size: 2em;">🏥 Medical Inventory Checker</h1>
+                        <p style="color: white; margin: 5px 0 0 0; opacity: 0.9;">AI-powered inventory analysis with DINO enhancement</p>
+                    </div>
+                    """)
+                with gr.Column(scale=1):
+                    language_selector = gr.Radio(
+                        choices=["English", "Español"],
+                        value="English",
+                        label="🌐 Language / Idioma",
+                        scale=1
+                    )
+            
+            # Tabbed interface
+            with gr.Tabs():
+                with gr.Tab(i18n("tab_inventory")) as inventory_tab:
+                    inventory_components = self.create_inventory_interface()
+                
+                with gr.Tab(i18n("tab_segmentation")) as segmentation_tab:
+                    # Create and embed segmentation interface content directly
+                    from segmentation_app import MedicalSegmentationApp
+                    seg_app = MedicalSegmentationApp()
+                    
+                    gr.HTML("""
+                    <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%); border-radius: 15px; margin-bottom: 20px;">
+                        <h2 style="color: white; margin: 0; font-size: 1.8em;">🔬 Medical Item Segmentation</h2>
+                        <p style="color: white; margin: 5px 0 0 0; opacity: 0.9; font-size: 1.1em;">Advanced DINOv2-powered medical object detection</p>
+                    </div>
+                    """)
+                    
+                    gr.Markdown("""
+                    ## Instructions:
+                    1. Upload a medical image containing items like syringes, bandages, pills, etc.
+                    2. Adjust detection threshold (lower = more sensitive)
+                    3. Set minimum object size to filter small noise
+                    4. Click 'Segment Medical Items' to analyze
+                    
+                    **Features:**
+                    - Advanced DINOv2 attention-based detection
+                    - Real-time contour visualization  
+                    - No counting - pure detection and segmentation
+                    - Optimized for medical inventory items
+                    """)
+                    
+                    with gr.Row():
+                        # Left column - Input controls
+                        with gr.Column(scale=1):
+                            seg_image_input = gr.Image(
+                                label="Upload Medical Image",
+                                type="pil",
+                                height=400
+                            )
+                            
+                            with gr.Row():
+                                seg_model_selector = gr.Dropdown(
+                                    choices=["vits14", "vitb14", "vitl14"],
+                                    value="vits14",
+                                    label="DINOv2 Model Size"
+                                )
+                            
+                            seg_threshold_slider = gr.Slider(
+                                minimum=0.1,
+                                maximum=0.9,
+                                value=0.6,
+                                step=0.05,
+                                label="Detection Threshold"
+                            )
+                            
+                            seg_min_size_slider = gr.Slider(
+                                minimum=50,
+                                maximum=1000,
+                                value=200,
+                                step=50,
+                                label="Minimum Object Size"
+                            )
+                            
+                            seg_btn = gr.Button(
+                                "🔍 Segment Medical Items", 
+                                variant="primary",
+                                size="lg"
+                            )
+                        
+                        # Right column - Results
+                        with gr.Column(scale=1):
+                            seg_result_image = gr.Image(
+                                label="Segmentation Results",
+                                type="pil",
+                                height=400
+                            )
+                            
+                            seg_result_info = gr.Markdown(
+                                value="Sube una imagen y haz clic en 'Segmentar' / Upload image and click 'Segment'"
+                            )
+                    
+                    # Connect segmentation function
+                    seg_btn.click(
+                        fn=seg_app.segment_image,
+                        inputs=[seg_image_input, seg_model_selector, seg_threshold_slider, seg_min_size_slider],
+                        outputs=[seg_result_image, seg_result_info]
+                    )
+            
             # Language change handler
             def update_language(lang):
                 i18n.set_language('es' if lang == "Español" else 'en')
@@ -294,26 +403,18 @@ class MedicalInventoryApp:
                     gr.update(label=i18n("threshold")),
                     gr.update(value=i18n("check_inventory")),
                     gr.update(label=i18n("analysis_results")),
-                    gr.update(label=i18n("inventory_report"))
+                    gr.update(label=i18n("inventory_report")),
+                    gr.update(label=i18n("tab_inventory")),
+                    gr.update(label=i18n("tab_segmentation"))
                 )
             
             language_selector.change(
                 fn=update_language,
                 inputs=[language_selector],
                 outputs=[
-                    subtitle_display,
-                    before_input, after_input,
-                    model_selector, threshold_slider,
-                    process_btn,
-                    output_image, output_report
+                    *inventory_components,
+                    inventory_tab, segmentation_tab
                 ]
-            )
-            
-            # Connect the processing function
-            process_btn.click(
-                fn=self.process_images,
-                inputs=[before_input, after_input, model_selector, threshold_slider],
-                outputs=[output_image, output_report]
             )
             
         return interface
