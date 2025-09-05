@@ -12,14 +12,8 @@ import os
 import spaces
 import traceback
 
-# Import from src structure
-try:
-    from src.models.dinov2_segmenter import DINOv2MedicalSegmenter
-except ImportError:
-    # Fallback if src structure not available
-    import sys
-    sys.path.append('src/models')
-    from dinov2_segmenter import DINOv2MedicalSegmenter
+# Import the segmenter (now in root directory for Hugging Face compatibility)
+from dinov2_segmenter import DINOv2MedicalSegmenter
 
 # Internationalization support
 class I18n:

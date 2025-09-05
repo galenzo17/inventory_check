@@ -16,8 +16,13 @@ from inventory_checker import InventoryChecker
 from visualization import create_difference_visualization
 from inventory_db import InventoryDatabase
 
-# Import segmentation app
-from segmentation_app import create_segmentation_interface
+# Import segmentation app (with fallback)
+try:
+    from segmentation_app import MedicalSegmentationApp
+    SEGMENTATION_AVAILABLE = True
+except ImportError as e:
+    print(f"Segmentation unavailable: {e}")
+    SEGMENTATION_AVAILABLE = False
 
 # Internationalization support - Custom implementation
 class I18n:
@@ -310,87 +315,89 @@ class MedicalInventoryApp:
                     inventory_components = self.create_inventory_interface()
                 
                 with gr.Tab(i18n("tab_segmentation")) as segmentation_tab:
-                    # Create and embed segmentation interface content directly
-                    from segmentation_app import MedicalSegmentationApp
-                    seg_app = MedicalSegmentationApp()
-                    
-                    gr.HTML("""
-                    <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%); border-radius: 15px; margin-bottom: 20px;">
-                        <h2 style="color: white; margin: 0; font-size: 1.8em;">🔬 Medical Item Segmentation</h2>
-                        <p style="color: white; margin: 5px 0 0 0; opacity: 0.9; font-size: 1.1em;">Advanced DINOv2-powered medical object detection</p>
-                    </div>
-                    """)
-                    
-                    gr.Markdown("""
-                    ## Instructions:
-                    1. Upload a medical image containing items like syringes, bandages, pills, etc.
-                    2. Adjust detection threshold (lower = more sensitive)
-                    3. Set minimum object size to filter small noise
-                    4. Click 'Segment Medical Items' to analyze
-                    
-                    **Features:**
-                    - Advanced DINOv2 attention-based detection
-                    - Real-time contour visualization  
-                    - No counting - pure detection and segmentation
-                    - Optimized for medical inventory items
-                    """)
-                    
-                    with gr.Row():
-                        # Left column - Input controls
-                        with gr.Column(scale=1):
-                            seg_image_input = gr.Image(
-                                label="Upload Medical Image",
-                                type="pil",
-                                height=400
-                            )
-                            
-                            with gr.Row():
-                                seg_model_selector = gr.Dropdown(
-                                    choices=["vits14", "vitb14", "vitl14"],
-                                    value="vits14",
-                                    label="DINOv2 Model Size"
+                    if SEGMENTATION_AVAILABLE:
+                        # Create segmentation app instance
+                        seg_app = MedicalSegmentationApp()
+                        
+                        gr.HTML("""
+                        <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%); border-radius: 15px; margin-bottom: 20px;">
+                            <h2 style="color: white; margin: 0; font-size: 1.8em;">🔬 Medical Item Segmentation</h2>
+                            <p style="color: white; margin: 5px 0 0 0; opacity: 0.9; font-size: 1.1em;">Advanced DINOv2-powered medical object detection</p>
+                        </div>
+                        """)
+                        
+                        gr.Markdown("""
+                        ## Instructions:
+                        1. Upload a medical image containing items like syringes, bandages, pills, etc.
+                        2. Adjust detection threshold (lower = more sensitive)
+                        3. Set minimum object size to filter small noise
+                        4. Click 'Segment Medical Items' to analyze
+                        
+                        **Features:**
+                        - Advanced DINOv2 attention-based detection
+                        - Real-time contour visualization  
+                        - No counting - pure detection and segmentation
+                        - Optimized for medical inventory items
+                        """)
+                        
+                        with gr.Row():
+                            # Left column - Input controls
+                            with gr.Column(scale=1):
+                                seg_image_input = gr.Image(
+                                    label="Upload Medical Image",
+                                    type="pil",
+                                    height=400
+                                )
+                                
+                                with gr.Row():
+                                    seg_model_selector = gr.Dropdown(
+                                        choices=["vits14", "vitb14", "vitl14"],
+                                        value="vits14",
+                                        label="DINOv2 Model Size"
+                                    )
+                                
+                                seg_threshold_slider = gr.Slider(
+                                    minimum=0.1,
+                                    maximum=0.9,
+                                    value=0.6,
+                                    step=0.05,
+                                    label="Detection Threshold"
+                                )
+                                
+                                seg_min_size_slider = gr.Slider(
+                                    minimum=50,
+                                    maximum=1000,
+                                    value=200,
+                                    step=50,
+                                    label="Minimum Object Size"
+                                )
+                                
+                                seg_btn = gr.Button(
+                                    "🔍 Segment Medical Items", 
+                                    variant="primary",
+                                    size="lg"
                                 )
                             
-                            seg_threshold_slider = gr.Slider(
-                                minimum=0.1,
-                                maximum=0.9,
-                                value=0.6,
-                                step=0.05,
-                                label="Detection Threshold"
-                            )
-                            
-                            seg_min_size_slider = gr.Slider(
-                                minimum=50,
-                                maximum=1000,
-                                value=200,
-                                step=50,
-                                label="Minimum Object Size"
-                            )
-                            
-                            seg_btn = gr.Button(
-                                "🔍 Segment Medical Items", 
-                                variant="primary",
-                                size="lg"
-                            )
+                            # Right column - Results
+                            with gr.Column(scale=1):
+                                seg_result_image = gr.Image(
+                                    label="Segmentation Results",
+                                    type="pil",
+                                    height=400
+                                )
+                                
+                                seg_result_info = gr.Markdown(
+                                    value="Sube una imagen y haz clic en 'Segmentar' / Upload image and click 'Segment'"
+                                )
                         
-                        # Right column - Results
-                        with gr.Column(scale=1):
-                            seg_result_image = gr.Image(
-                                label="Segmentation Results",
-                                type="pil",
-                                height=400
-                            )
-                            
-                            seg_result_info = gr.Markdown(
-                                value="Sube una imagen y haz clic en 'Segmentar' / Upload image and click 'Segment'"
-                            )
-                    
-                    # Connect segmentation function
-                    seg_btn.click(
-                        fn=seg_app.segment_image,
-                        inputs=[seg_image_input, seg_model_selector, seg_threshold_slider, seg_min_size_slider],
-                        outputs=[seg_result_image, seg_result_info]
-                    )
+                        # Connect segmentation function
+                        seg_btn.click(
+                            fn=seg_app.segment_image,
+                            inputs=[seg_image_input, seg_model_selector, seg_threshold_slider, seg_min_size_slider],
+                            outputs=[seg_result_image, seg_result_info]
+                        )
+                    else:
+                        gr.Markdown("⚠️ **Segmentation feature unavailable** - Missing dependencies or files.")
             
             # Language change handler
             def update_language(lang):
