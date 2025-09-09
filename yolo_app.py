@@ -440,6 +440,145 @@ class YOLODetectionApp:
                         outputs=[seg_output, seg_report]
                     )
             
+                # Batch Processing Tab
+                with gr.Tab("📦 Batch Processing"):
+                    gr.Markdown("""
+                    ### Instructions:
+                    1. Upload multiple images for batch analysis
+                    2. Select processing mode and model
+                    3. Set detection parameters
+                    4. Click 'Process Batch' to analyze all images
+                    """)
+                    
+                    with gr.Row():
+                        with gr.Column(scale=1):
+                            batch_images = gr.File(
+                                label="Upload Multiple Images",
+                                file_count="multiple",
+                                file_types=["image"]
+                            )
+                            
+                            batch_mode = gr.Radio(
+                                choices=["Detection", "Segmentation"],
+                                value="Detection",
+                                label="Processing Mode"
+                            )
+                            
+                            batch_model = gr.Dropdown(
+                                choices=["YOLOv8n", "YOLOv8s", "YOLOv8m", "YOLOv8l", "YOLOv8x",
+                                        "YOLOv8n-seg", "YOLOv8s-seg", "YOLOv8m-seg", 
+                                        "YOLOv8l-seg", "YOLOv8x-seg"],
+                                value="YOLOv8n",
+                                label="Select Model"
+                            )
+                            
+                            with gr.Row():
+                                batch_conf = gr.Slider(
+                                    minimum=0.1,
+                                    maximum=0.9,
+                                    value=0.25,
+                                    step=0.05,
+                                    label="Confidence Threshold"
+                                )
+                                
+                                batch_iou = gr.Slider(
+                                    minimum=0.1,
+                                    maximum=0.9,
+                                    value=0.45,
+                                    step=0.05,
+                                    label="IoU Threshold"
+                                )
+                            
+                            batch_btn = gr.Button("📦 Process Batch", variant="primary", size="lg")
+                        
+                        with gr.Column(scale=1):
+                            batch_gallery = gr.Gallery(
+                                label="Batch Results",
+                                show_label=True,
+                                elem_id="batch_gallery",
+                                columns=2,
+                                rows=2,
+                                height=400
+                            )
+                            
+                            batch_report = gr.Markdown(
+                                value="Upload images and click 'Process Batch' to start"
+                            )
+                    
+                    # Connect batch processing function
+                    batch_btn.click(
+                        fn=self.process_batch,
+                        inputs=[batch_images, batch_mode, batch_model, batch_conf, batch_iou],
+                        outputs=[batch_gallery, batch_report]
+                    )
+            
             # Add examples section
             gr.Markdown("### 📸 Example Images")
             gr.Markdown("Try these example images to test the detection and segmentation capabilities:")
+    
+    @spaces.GPU(duration=120)
+    def process_batch(self, files, mode, model_name, confidence_threshold=0.25, iou_threshold=0.45):
+        """Process multiple images in batch"""
+        
+        if not files:
+            return None, "Please upload at least one image."
+        
+        # Load model
+        if not self.load_model(model_name):
+            return None, f"Failed to load model: {model_name}"
+        
+        try:
+            processed_images = []
+            total_stats = {}
+            
+            for file in files:
+                # Load image
+                image = Image.open(file.name)
+                
+                # Process based on mode
+                if mode == "Detection":
+                    result_img, _ = self.detect_objects(
+                        image, model_name, confidence_threshold, iou_threshold,
+                        show_labels=True, show_confidence=True, show_boxes=True
+                    )
+                else:  # Segmentation
+                    result_img, _ = self.segment_objects(
+                        image, model_name, confidence_threshold, iou_threshold,
+                        show_masks=True, show_boxes=False, show_labels=True
+                    )
+                
+                if result_img:
+                    processed_images.append(result_img)
+                    
+                    # Run inference for statistics
+                    results = self.current_model(image, conf=confidence_threshold, iou=iou_threshold)
+                    result = results[0]
+                    
+                    # Count objects
+                    if result.boxes is not None:
+                        for box in result.boxes:
+                            cls = int(box.cls[0])
+                            class_name = result.names[cls]
+                            total_stats[class_name] = total_stats.get(class_name, 0) + 1
+            
+            # Generate batch report
+            report = f"## Batch Processing Results\n\n"
+            report += f"**Images Processed:** {len(processed_images)}/{len(files)}\n\n"
+            
+            if total_stats:
+                report += "### Total Object Counts Across All Images:\n"
+                for class_name, count in sorted(total_stats.items(), key=lambda x: x[1], reverse=True):
+                    report += f"- **{class_name}:** {count} object{'s' if count > 1 else ''}\n"
+            else:
+                report += "No objects detected in the batch.\n"
+            
+            report += f"\n### Processing Settings:\n"
+            report += f"- Mode: {mode}\n"
+            report += f"- Model: {model_name}\n"
+            report += f"- Confidence Threshold: {confidence_threshold:.2f}\n"
+            report += f"- IoU Threshold: {iou_threshold:.2f}\n"
+            
+            return processed_images, report
+            
+        except Exception as e:
+            return None, f"Error during batch processing: {str(e)}"
