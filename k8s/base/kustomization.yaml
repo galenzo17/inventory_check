@@ -1,0 +1,33 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: medical-inventory-base
+
+resources:
+- namespace.yaml
+- configmap.yaml
+- secrets.yaml
+- persistent-volumes.yaml
+- redis.yaml
+- postgres.yaml
+- api.yaml
+- websocket.yaml
+- nginx.yaml
+- monitoring.yaml
+
+commonLabels:
+  app.kubernetes.io/instance: medical-inventory
+  app.kubernetes.io/managed-by: kustomize
+
+images:
+- name: medical-inventory
+  newTag: latest
+
+replicas:
+- name: api
+  count: 3
+- name: websocket  
+  count: 2
+- name: nginx
+  count: 2

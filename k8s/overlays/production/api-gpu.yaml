@@ -1,0 +1,6 @@
+# Include GPU-enabled API deployment for production
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Component
+
+resources:
+- ../../base/api-gpu.yaml

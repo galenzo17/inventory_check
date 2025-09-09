@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: medical-inventory-quota
+  namespace: medical-inventory
+spec:
+  hard:
+    requests.cpu: "50"
+    requests.memory: 100Gi
+    limits.cpu: "100"
+    limits.memory: 200Gi
+    requests.nvidia.com/gpu: "10"
+    persistentvolumeclaims: "50"
+    services: "50"
+    count/deployments.apps: "50"
+    count/configmaps: "100"
+    count/secrets: "100"

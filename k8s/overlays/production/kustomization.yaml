@@ -1,0 +1,51 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: medical-inventory-production
+
+namespace: medical-inventory
+
+resources:
+- ../../base
+- api-gpu.yaml
+- pod-security-policy.yaml
+
+patchesStrategicMerge:
+- patches/api-production.yaml
+- patches/resources-production.yaml
+- patches/nginx-production.yaml
+- patches/monitoring-production.yaml
+
+images:
+- name: medical-inventory
+  newTag: v1.0.0
+
+replicas:
+- name: api
+  count: 5
+- name: api-gpu
+  count: 2
+- name: websocket
+  count: 3
+- name: nginx
+  count: 3
+- name: prometheus
+  count: 1
+- name: grafana
+  count: 1
+
+configMapGenerator:
+- name: production-config
+  literals:
+  - LOG_LEVEL=INFO
+  - WORKERS=4
+  - ENV=production
+  - METRICS_ENABLED=true
+
+secretGenerator:
+- name: production-secrets
+  literals:
+  - JWT_SECRET_KEY=production-jwt-secret-change-me
+  - API_SECRET_KEY=production-api-secret-change-me
+  type: Opaque
