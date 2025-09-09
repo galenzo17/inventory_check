@@ -512,9 +512,192 @@ class YOLODetectionApp:
                         outputs=[batch_gallery, batch_report]
                     )
             
+                # Video Processing Tab
+                with gr.Tab("🎬 Video Processing"):
+                    gr.Markdown("""
+                    ### Instructions:
+                    1. Upload a video file for analysis
+                    2. Select the YOLO model for processing
+                    3. Set detection parameters and frame sampling rate
+                    4. Click 'Process Video' to analyze
+                    """)
+                    
+                    with gr.Row():
+                        with gr.Column(scale=1):
+                            video_input = gr.Video(
+                                label="Upload Video",
+                                format="mp4"
+                            )
+                            
+                            video_model = gr.Dropdown(
+                                choices=["YOLOv8n", "YOLOv8s", "YOLOv8m", "YOLOv8l", "YOLOv8x"],
+                                value="YOLOv8n",
+                                label="Select YOLO Model"
+                            )
+                            
+                            with gr.Row():
+                                video_conf = gr.Slider(
+                                    minimum=0.1,
+                                    maximum=0.9,
+                                    value=0.25,
+                                    step=0.05,
+                                    label="Confidence Threshold"
+                                )
+                                
+                                video_iou = gr.Slider(
+                                    minimum=0.1,
+                                    maximum=0.9,
+                                    value=0.45,
+                                    step=0.05,
+                                    label="IoU Threshold"
+                                )
+                            
+                            frame_skip = gr.Slider(
+                                minimum=1,
+                                maximum=30,
+                                value=5,
+                                step=1,
+                                label="Process every N frames"
+                            )
+                            
+                            video_btn = gr.Button("🎬 Process Video", variant="primary", size="lg")
+                        
+                        with gr.Column(scale=1):
+                            video_output = gr.Video(
+                                label="Processed Video",
+                                format="mp4"
+                            )
+                            
+                            video_report = gr.Markdown(
+                                value="Upload a video and click 'Process Video' to start"
+                            )
+                    
+                    # Connect video processing function
+                    video_btn.click(
+                        fn=self.process_video,
+                        inputs=[video_input, video_model, video_conf, video_iou, frame_skip],
+                        outputs=[video_output, video_report]
+                    )
+            
             # Add examples section
             gr.Markdown("### 📸 Example Images")
             gr.Markdown("Try these example images to test the detection and segmentation capabilities:")
+    
+    @spaces.GPU(duration=180)
+    def process_video(self, video_path, model_name, confidence_threshold=0.25, iou_threshold=0.45, frame_skip=5):
+        """Process video with YOLO detection"""
+        
+        if video_path is None:
+            return None, "Please upload a video first."
+        
+        # Load model
+        if not self.load_model(model_name):
+            return None, f"Failed to load model: {model_name}"
+        
+        try:
+            import tempfile
+            
+            # Open video
+            cap = cv2.VideoCapture(video_path)
+            fps = int(cap.get(cv2.CAP_PROP_FPS))
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            
+            # Create temporary output file
+            output_path = tempfile.mktemp(suffix='.mp4')
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+            
+            # Process statistics
+            frame_count = 0
+            processed_frames = 0
+            total_detections = {}
+            
+            # Get class names and colors
+            temp_result = self.current_model(np.zeros((height, width, 3), dtype=np.uint8))
+            names = temp_result[0].names
+            num_classes = len(names)
+            colors = self.get_distinct_colors(num_classes)
+            
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                
+                # Process every Nth frame
+                if frame_count % frame_skip == 0:
+                    # Run YOLO detection
+                    results = self.current_model(frame, conf=confidence_threshold, iou=iou_threshold)
+                    result = results[0]
+                    
+                    # Draw detections
+                    if result.boxes is not None:
+                        for box in result.boxes:
+                            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                            
+                            cls = int(box.cls[0])
+                            conf = float(box.conf[0])
+                            class_name = names[cls]
+                            color = colors[cls]
+                            
+                            # Update statistics
+                            if class_name not in total_detections:
+                                total_detections[class_name] = []
+                            total_detections[class_name].append(conf)
+                            
+                            # Draw bounding box
+                            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                            
+                            # Draw label
+                            label = f"{class_name} {conf:.2f}"
+                            label_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)[0]
+                            cv2.rectangle(frame, 
+                                        (x1, y1 - label_size[1] - 4),
+                                        (x1 + label_size[0], y1),
+                                        color, -1)
+                            cv2.putText(frame, label,
+                                      (x1, y1 - 2),
+                                      cv2.FONT_HERSHEY_SIMPLEX,
+                                      0.5, (255, 255, 255), 1)
+                    
+                    processed_frames += 1
+                
+                # Write frame
+                out.write(frame)
+                frame_count += 1
+            
+            # Release everything
+            cap.release()
+            out.release()
+            
+            # Generate report
+            report = f"## Video Processing Results\n\n"
+            report += f"**Video Information:**\n"
+            report += f"- Total Frames: {total_frames}\n"
+            report += f"- Processed Frames: {processed_frames}\n"
+            report += f"- FPS: {fps}\n"
+            report += f"- Resolution: {width}x{height}\n\n"
+            
+            if total_detections:
+                report += "### Detection Statistics:\n"
+                for class_name, confidences in sorted(total_detections.items()):
+                    avg_conf = sum(confidences) / len(confidences)
+                    report += f"- **{class_name}:** {len(confidences)} detections (avg conf: {avg_conf:.2f})\n"
+            else:
+                report += "No objects detected in the video.\n"
+            
+            report += f"\n### Processing Settings:\n"
+            report += f"- Model: {model_name}\n"
+            report += f"- Confidence Threshold: {confidence_threshold:.2f}\n"
+            report += f"- IoU Threshold: {iou_threshold:.2f}\n"
+            report += f"- Frame Skip: Every {frame_skip} frames\n"
+            
+            return output_path, report
+            
+        except Exception as e:
+            return None, f"Error during video processing: {str(e)}"
     
     @spaces.GPU(duration=120)
     def process_batch(self, files, mode, model_name, confidence_threshold=0.25, iou_threshold=0.45):
