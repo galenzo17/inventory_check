@@ -1,0 +1,147 @@
+version: '3.8'
+
+services:
+  # Extend base services from main compose file
+  redis:
+    extends:
+      file: docker-compose.yml
+      service: redis
+
+  postgres:
+    extends:
+      file: docker-compose.yml
+      service: postgres
+
+  # GPU-enabled API service
+  api-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: gpu-production
+    container_name: medical_inventory_api_gpu
+    restart: unless-stopped
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://inventory_user:${DB_PASSWORD:-secure_password_123}@postgres:5432/medical_inventory
+      - MODEL_PATH=/app/models
+      - LOG_LEVEL=INFO
+      - WORKERS=2
+      - CUDA_VISIBLE_DEVICES=0
+      - NVIDIA_VISIBLE_DEVICES=all
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models:ro
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 120s
+
+  # GPU-enabled WebSocket service
+  websocket-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: gpu-production
+    container_name: medical_inventory_websocket_gpu
+    restart: unless-stopped
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - MODEL_PATH=/app/models
+      - LOG_LEVEL=INFO
+      - CUDA_VISIBLE_DEVICES=0
+      - NVIDIA_VISIBLE_DEVICES=all
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./models:/app/models:ro
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+      - api-gpu
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: ["python3", "websocket_server.py"]
+
+  # Model training service (GPU required)
+  training:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: medical_inventory_training
+    restart: "no"
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - NVIDIA_VISIBLE_DEVICES=all
+      - WANDB_API_KEY=${WANDB_API_KEY:-}
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./checkpoints:/app/checkpoints
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: ["python3", "training_pipeline.py"]
+    profiles:
+      - training
+
+  # Extend monitoring services
+  prometheus:
+    extends:
+      file: docker-compose.yml
+      service: prometheus
+
+  grafana:
+    extends:
+      file: docker-compose.yml
+      service: grafana
+
+  nginx:
+    extends:
+      file: docker-compose.yml
+      service: nginx
+    depends_on:
+      - api-gpu
+      - websocket-gpu
+
+volumes:
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  default:
+    name: medical_inventory_network
+    driver: bridge
