@@ -24,6 +24,14 @@ except ImportError as e:
     print(f"Segmentation unavailable: {e}")
     SEGMENTATION_AVAILABLE = False
 
+# Import YOLO app (with fallback)
+try:
+    from yolo_app import YOLODetectionApp
+    YOLO_AVAILABLE = True
+except ImportError as e:
+    print(f"YOLO unavailable: {e}")
+    YOLO_AVAILABLE = False
+
 # Internationalization support - Custom implementation
 class I18n:
     def __init__(self, translations):
@@ -43,6 +51,7 @@ i18n = I18n({
         "subtitle": "Upload before/after images of medical cases to detect missing or changed items",
         "tab_inventory": "Inventory Comparison",
         "tab_segmentation": "Item Segmentation",
+        "tab_yolo": "YOLO Detection",
         "before_image": "Before Image",
         "after_image": "After Image",
         "select_model": "Select AI Model",
@@ -81,6 +90,7 @@ i18n = I18n({
         "subtitle": "Sube imágenes de antes/después de cajas médicas para detectar elementos faltantes o cambiados",
         "tab_inventory": "Comparación de Inventario",
         "tab_segmentation": "Segmentación de Elementos",
+        "tab_yolo": "Detección YOLO",
         "before_image": "Imagen Anterior",
         "after_image": "Imagen Posterior",
         "select_model": "Seleccionar Modelo de IA",
@@ -398,6 +408,14 @@ class MedicalInventoryApp:
                         )
                     else:
                         gr.Markdown("⚠️ **Segmentation feature unavailable** - Missing dependencies or files.")
+                
+                with gr.Tab(i18n("tab_yolo")) as yolo_tab:
+                    if YOLO_AVAILABLE:
+                        # Create YOLO app instance
+                        yolo_app = YOLODetectionApp()
+                        yolo_app.create_interface()
+                    else:
+                        gr.Markdown("⚠️ **YOLO feature unavailable** - Missing dependencies or files.")
             
             # Language change handler
             def update_language(lang):
@@ -412,7 +430,8 @@ class MedicalInventoryApp:
                     gr.update(label=i18n("analysis_results")),
                     gr.update(label=i18n("inventory_report")),
                     gr.update(label=i18n("tab_inventory")),
-                    gr.update(label=i18n("tab_segmentation"))
+                    gr.update(label=i18n("tab_segmentation")),
+                    gr.update(label=i18n("tab_yolo"))
                 )
             
             language_selector.change(
@@ -420,7 +439,7 @@ class MedicalInventoryApp:
                 inputs=[language_selector],
                 outputs=[
                     *inventory_components,
-                    inventory_tab, segmentation_tab
+                    inventory_tab, segmentation_tab, yolo_tab
                 ]
             )
             
